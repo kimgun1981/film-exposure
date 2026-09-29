@@ -21,6 +21,17 @@ export function nearest(list, value) {
 
 // ── 장노출 보정 (상반칙불궤) ─────────────────────────────
 // 필름은 노출이 길어지면 계산보다 덜 찍히므로 시간을 늘려야 한다.
+
+// 후지 방식: 실제 노출시간 t에서 조리개를 몇 스톱 더 열어야 하는지 (표 사이값은 로그 눈금으로)
+function lossAt(points, t) {
+  if (t <= points[0][0]) return 0;
+  let i = points.findIndex(([x]) => x >= t) - 1;
+  if (i < 0) i = points.length - 2; // 표보다 길면 마지막 구간을 늘려서 추정
+  const [x1, s1] = points[i];
+  const [x2, s2] = points[i + 1];
+  return s1 + ((s2 - s1) * Math.log(t / x1)) / Math.log(x2 / x1);
+}
+
 // 측정시간 tm → 실제로 열어 둘 시간
 export function reciprocityCorrect(recip, tm) {
   const none = { time: tm, stops: 0, applied: false, outOfRange: false, noData: false };
@@ -47,6 +58,18 @@ export function reciprocityCorrect(recip, tm) {
   } else if (recip.type === 'step') {
     if (tm > recip.from) time = tm * 2 ** recip.stops;
     outOfRange = tm > recip.max;
+  } else if (recip.type === 'loss') {
+    // 실제로 t초 열면 필름에는 t ÷ 2^손실 만큼 효과. 그 효과가 측정시간과 같아지는 t를 찾는다
+    let lo = Math.log(tm);
+    let hi = Math.log(tm) + 15;
+    for (let i = 0; i < 80; i++) {
+      const mid = (lo + hi) / 2;
+      const t = Math.exp(mid);
+      if (t / 2 ** lossAt(recip.points, t) < tm) lo = mid;
+      else hi = mid;
+    }
+    time = Math.exp(hi);
+    outOfRange = time > recip.limit * 1.001;
   } else if (recip.type === 'nodata') {
     return { ...none, noData: tm > 1 };
   }
@@ -59,6 +82,7 @@ export function reciprocityCorrect(recip, tm) {
 // 실제로 열어 둔 시간 t 동안 필름이 받아들인 "효과상의 시간" (보정의 역계산)
 export function reciprocityEffective(recip, t) {
   if (!recip || recip.type === 'none' || recip.type === 'nodata') return t;
+  if (recip.type === 'loss') return t / 2 ** lossAt(recip.points, t);
   let lo = Math.log(1e-6);
   let hi = Math.log(t);
   for (let i = 0; i < 80; i++) {

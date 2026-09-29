@@ -6,7 +6,7 @@ import {
 import { solve, nearest, formatThirds, formatTime, formatF, tvToSec } from './exposure.js';
 import { setupTimer } from './timer.js';
 
-const VERSION = '1.0.1'; // sw.js의 VERSION과 같이 올린다
+const VERSION = '1.0.2'; // sw.js의 VERSION과 같이 올린다
 const STORE_KEY = 'film-exposure:v1';
 const DEFAULTS = {
   mode: 'shutter',
@@ -159,14 +159,17 @@ function meterText(d) {
 function reciprocityNotes(r, film, notes) {
   const rc = r.rc;
   if (!rc) return;
-  const source = film.recip.source ? ` (${film.recip.source})` : '';
+  const source = film.recip.source ? ` — ${film.recip.source}` : '';
   if (rc.applied) {
     if (r.mode === 'shutter') {
       notes.push(['info', `장노출 보정(상반칙불궤): 계산 ${formatTime(r.metered)} → 실제 ${formatTime(r.time)}, ${formatThirds(rc.stops)}스톱 더 노출${source}`]);
     } else {
       notes.push(['info', `장노출 보정(상반칙불궤): 셔터 ${formatTime(r.exposureTime)}는 이 필름에 약 ${formatTime(r.effectiveTime)} 효과라 ${formatThirds(rc.stops)}스톱 손실을 반영했습니다${source}`]);
     }
-    if (rc.outOfRange) notes.push(['warn', '제조사 자료 범위를 넘어 추정한 값입니다. 여유 있게 노출하세요.']);
+    if (rc.outOfRange) {
+      notes.push(['warn', `제조사 자료 범위를 넘어 추정한 값입니다. 여유 있게 노출하세요.${film.recip.limitNote ? ` ${film.recip.limitNote}` : ''}`]);
+    }
+    if (film.recip.cc) notes.push(['info', film.recip.cc]);
     if (film.recip.approx) notes.push(['warn', '일반 근사값입니다. 필름 제조사 자료가 있으면 그 값을 우선하세요.']);
   } else if (rc.noData) {
     notes.push(['warn', '이 필름은 1초보다 긴 노출의 보정 자료가 앱에 없습니다. 중요한 촬영이면 테스트하거나, 필름에서 "기타 필름 · 일반 보정"을 골라 참고하세요.']);
@@ -266,7 +269,11 @@ function render() {
     const d = r.deviation;
     mainText = Math.abs(d) < 1 / 6 ? '적정' : `${formatThirds(d)}스톱`;
     subText = `적정값 참고: 셔터 ${r.suggestShutter.label} 또는 조리개 ${r.suggestAperture.label}`;
-    if (d >= 1 / 6 && d < 2.5) notes.push(['info', '네거티브 필름은 1~2스톱 과다까지는 대체로 괜찮습니다. 슬라이드 필름은 맞추는 것이 좋습니다.']);
+    if (film.slide) {
+      if (Math.abs(d) >= 1 / 6) notes.push(['warn', '슬라이드 필름은 ⅓스톱 차이에도 결과가 달라집니다. 적정 노출에 맞추세요.']);
+    } else if (d >= 1 / 6 && d < 2.5) {
+      notes.push(['info', '네거티브 필름은 1~2스톱 과다까지는 대체로 괜찮습니다. 슬라이드 필름은 맞추는 것이 좋습니다.']);
+    }
   }
 
   reciprocityNotes(r, film, notes);

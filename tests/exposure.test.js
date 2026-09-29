@@ -18,9 +18,10 @@ const base = {
 const iso = (n) => Math.round(Math.log2(n / 100) * 3) / 3;
 
 test('기준값 목록 개수', () => {
-  assert.equal(APERTURE_SCALES.full.length, 13);
+  // f/3.3(눈금 사이 렌즈 값)이 1스톱·1/3스톱 눈금에 추가됨. 1/2스톱 눈금에는 원래 있음
+  assert.equal(APERTURE_SCALES.full.length, 14);
   assert.equal(APERTURE_SCALES.half.length, 25);
-  assert.equal(APERTURE_SCALES.third.length, 37);
+  assert.equal(APERTURE_SCALES.third.length, 38);
   assert.equal(SHUTTER_SCALES.third.length, 55 + 7);
   assert.equal(SHUTTER_SCALES.full.length, 19 + 7);
   assert.equal(ISO_LIST.length, 31);
@@ -38,6 +39,21 @@ test('눈금 이름이 스톱 값과 맞는지', () => {
   assert.equal(label(SHUTTER_SCALES.full, 0), '1초');
   assert.equal(label(SHUTTER_SCALES.third, 10), '1/1000');
   assert.equal(label(SHUTTER_SCALES.third, -5), '30초');
+});
+
+test('f/3.3 조리개: 모든 눈금에 있고 순서가 맞음', () => {
+  const av33 = 2 * Math.log2(3.3);
+  for (const scale of ['full', 'half', 'third']) {
+    const list = APERTURE_SCALES[scale];
+    assert.equal(label(list, av33), 'f/3.3', scale);
+    assert.equal(list.filter((a) => a.label === 'f/3.3').length, 1, scale);
+    for (let i = 1; i < list.length; i++) assert.ok(list[i].value > list[i - 1].value, scale);
+  }
+  const third = APERTURE_SCALES.third.map((a) => a.label);
+  assert.deepEqual(third.slice(third.indexOf('f/3.2'), third.indexOf('f/3.2') + 3), ['f/3.2', 'f/3.3', 'f/3.5']);
+  // 조리개 자동: 계산값이 f/3.3 근처면 f/3.3을 고른다
+  const r = solve({ ...base, mode: 'aperture', ev: 10, tv: 10 - av33 });
+  assert.equal(label(APERTURE_SCALES.third, r.av), 'f/3.3');
 });
 
 test('써니16: 맑음 EV15, ISO100, f/16 → 1/125', () => {
@@ -117,6 +133,52 @@ test('후지 Acros II: 120초까지 보정 없음, 그 뒤 +½스톱', () => {
   assert.equal(reciprocityCorrect(acros, 120).applied, false);
   close(reciprocityCorrect(acros, 200).time, 200 * Math.SQRT2, 1e-6);
   assert.equal(reciprocityCorrect(acros, 2000).outOfRange, true);
+});
+
+test('후지 C200·수페리아 400: 2초까지 없음, 4초 +⅓, 16초 +⅔, 64초 +1 (조리개 기준)', () => {
+  for (const id of ['c200', 'superia400']) {
+    const c = findFilm(id).recip;
+    close(reciprocityEffective(c, 2), 2, 1e-9);
+    close(reciprocityEffective(c, 4), 4 / 2 ** (1 / 3), 1e-9);
+    close(reciprocityEffective(c, 16), 16 / 2 ** (2 / 3), 1e-9);
+    close(reciprocityEffective(c, 64), 32, 1e-9);
+    // 역계산: 측정 32초면 실제 64초
+    close(reciprocityCorrect(c, 32).time, 64, 0.01);
+    assert.equal(reciprocityCorrect(c, 1.5).applied, false);
+  }
+});
+
+test('후지 벨비아 50: 1초까지 없음, 4초 +⅓ ~ 32초 +1, 64초는 범위 밖', () => {
+  const v = findFilm('velvia50').recip;
+  assert.equal(reciprocityCorrect(v, 1).applied, false);
+  close(reciprocityEffective(v, 8), 8 / 2 ** 0.5, 1e-9);
+  close(reciprocityEffective(v, 32), 16, 1e-9);
+  close(reciprocityCorrect(v, 16).time, 32, 0.01);
+  assert.equal(reciprocityCorrect(v, 16).outOfRange, false);
+  assert.equal(reciprocityCorrect(v, 40).outOfRange, true);
+  assert.equal(findFilm('velvia50').slide, true);
+});
+
+test('후지 벨비아 100·프로비아 100F', () => {
+  const v100 = findFilm('velvia100').recip;
+  assert.equal(reciprocityCorrect(v100, 60).applied, false);
+  close(reciprocityEffective(v100, 120), 120 / 2 ** (1 / 3), 1e-9);
+  close(reciprocityEffective(v100, 480), 480 / 2 ** (2 / 3), 1e-9);
+  const provia = findFilm('provia100f').recip;
+  assert.equal(reciprocityCorrect(provia, 128).applied, false);
+  close(reciprocityEffective(provia, 240), 240 / 2 ** (1 / 3), 1e-9);
+  assert.equal(reciprocityCorrect(provia, 300).outOfRange, true);
+});
+
+test('셔터 자동 + 후지 방식 보정: 결과를 다시 넣으면 적정 노출', () => {
+  // 벨비아 50, EV 5, ISO 50(−1) → 목표 4. f/11(Av 7) → 측정 8초
+  const recip = findFilm('velvia50').recip;
+  const r = solve({ ...base, ev: 5, iso: -1, av: 7, recip, shutters: SHUTTER_SCALES.third });
+  close(r.metered, 8, 1e-9);
+  assert.ok(r.time > 8 && r.rc.applied);
+  // 보정된 시간으로 직접 확인하면 0스톱이어야 함
+  const check = solve({ ...base, mode: 'manual', ev: 5, iso: -1, av: 7, tv: -Math.log2(r.time), recip });
+  close(check.deviation, 0, 0.01);
 });
 
 test('컬러 네거티브: 1초 넘으면 "자료 없음" 표시만', () => {

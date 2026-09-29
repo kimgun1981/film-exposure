@@ -16,10 +16,19 @@ const AP_HALF = [
   '8', '9.5', '11', '13', '16', '19', '22', '27', '32', '38', '45', '54', '64',
 ];
 
+// 눈금 사이에 있는 렌즈 조리개 (예: 최대 개방 f/3.3 렌즈). 모든 눈금 단위에 함께 넣는다.
+const AP_EXTRA = ['3.3'];
+const withExtras = (list) => {
+  const extras = AP_EXTRA
+    .filter((n) => !list.some((a) => a.label === `f/${n}`))
+    .map((n) => ({ value: 2 * Math.log2(Number(n)), label: `f/${n}` }));
+  return [...list, ...extras].sort((a, b) => a.value - b.value);
+};
+
 export const APERTURE_SCALES = {
-  full: AP_THIRD.filter((_, i) => i % 3 === 0).map((n, i) => ({ value: i, label: `f/${n}` })),
-  half: AP_HALF.map((n, i) => ({ value: i / 2, label: `f/${n}` })),
-  third: AP_THIRD.map((n, i) => ({ value: i / 3, label: `f/${n}` })),
+  full: withExtras(AP_THIRD.filter((_, i) => i % 3 === 0).map((n, i) => ({ value: i, label: `f/${n}` }))),
+  half: withExtras(AP_HALF.map((n, i) => ({ value: i / 2, label: `f/${n}` }))),
+  third: withExtras(AP_THIRD.map((n, i) => ({ value: i / 3, label: `f/${n}` }))),
 };
 
 // ── 셔터 (빠른 것 → 느린 것) ─────────────────────────────
@@ -134,9 +143,15 @@ export const SCENES = [
 // power : 일포드 공식  보정시간 = 측정시간^p  (1초 초과부터)
 // table : 코닥 공식 표 [측정시간, 보정시간] (로그 눈금으로 사이값 계산)
 // step  : 후지필름 공식  from초까지 보정 없음, 그 뒤 stops만큼 추가
+// loss  : 후지필름 공식 표 [실제 노출시간, 조리개를 더 열 스톱] (로그 눈금으로 사이값 계산)
+//         limit초를 넘으면 제조사 자료 범위 밖(limitNote로 안내)
 // nodata: 1초까지는 보정 불필요, 그보다 긴 노출은 앱에 자료 없음
 const ilford = (p) => ({ type: 'power', p, source: `일포드 공식 계수 ${p}` });
 const kodakColor = { type: 'nodata', source: '1초까지는 보정 불필요 (코닥 안내)' };
+const fujiNeg = {
+  type: 'loss', points: [[2, 0], [4, 1 / 3], [16, 2 / 3], [64, 1]], limit: 64,
+  source: '후지필름 공식 자료 (2초까지 보정 없음)',
+};
 
 export const FILMS = [
   {
@@ -182,6 +197,46 @@ export const FILMS = [
       {
         id: 'acros2', label: 'Fujifilm Acros 100 II', iso: 100,
         recip: { type: 'step', from: 120, stops: 0.5, max: 1000, source: '후지필름 공식 자료 (120초까지 보정 없음)' },
+      },
+    ],
+  },
+  {
+    group: '후지필름 · 컬러 네거티브',
+    items: [
+      { id: 'c200', label: 'Fujicolor C200', iso: 200, recip: fujiNeg },
+      { id: 'superia400', label: 'Fujicolor Superia X-TRA 400', iso: 400, recip: fujiNeg },
+      { id: 'fuji200', label: 'Fujifilm 200', iso: 200, recip: { type: 'nodata', source: '앱에 자료 없음' } },
+      { id: 'fuji400', label: 'Fujifilm 400', iso: 400, recip: { type: 'nodata', source: '앱에 자료 없음' } },
+    ],
+  },
+  {
+    group: '후지필름 · 슬라이드(리버설)',
+    items: [
+      {
+        id: 'velvia50', label: 'Fujichrome Velvia 50', iso: 50, slide: true,
+        recip: {
+          type: 'loss', points: [[1, 0], [4, 1 / 3], [8, 1 / 2], [16, 2 / 3], [32, 1]], limit: 32,
+          limitNote: '제조사는 64초 이상 노출을 권장하지 않습니다.',
+          cc: '제조사는 4초 이상 노출에 마젠타 색보정 필터(4초 5M ~ 32초 12.5M)도 권장합니다.',
+          source: '후지필름 공식 자료 (1초까지 보정 없음)',
+        },
+      },
+      {
+        id: 'velvia100', label: 'Fujichrome Velvia 100', iso: 100, slide: true,
+        recip: {
+          type: 'loss', points: [[60, 0], [120, 1 / 3], [240, 1 / 2], [480, 2 / 3]], limit: 480,
+          cc: '제조사는 2분 이상 노출에 색보정 필터 2.5M도 권장합니다.',
+          source: '후지필름 공식 자료 (1분까지 보정 없음)',
+        },
+      },
+      {
+        id: 'provia100f', label: 'Fujichrome Provia 100F', iso: 100, slide: true,
+        recip: {
+          type: 'loss', points: [[128, 0], [240, 1 / 3]], limit: 240,
+          limitNote: '제조사는 8분 이상 노출을 권장하지 않습니다.',
+          cc: '제조사는 4분 노출에 색보정 필터 2.5G도 권장합니다.',
+          source: '후지필름 공식 자료 (128초까지 보정 없음)',
+        },
       },
     ],
   },
