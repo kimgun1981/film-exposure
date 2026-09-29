@@ -1,0 +1,169 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#0e0e0f">
+  <meta name="color-scheme" content="dark">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="필름노출">
+  <meta name="format-detection" content="telephone=no">
+  <title>필름 노출 계산기</title>
+  <link rel="manifest" href="manifest.json">
+  <link rel="icon" href="icons/icon-192.png">
+  <link rel="apple-touch-icon" href="icons/icon-180.png">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body data-theme="dark">
+  <header class="topbar">
+    <h1>필름 노출 계산기</h1>
+    <div class="top-actions">
+      <button type="button" id="themeBtn" class="chip">화면: 기본</button>
+      <button type="button" id="settingsBtn" class="chip">설정</button>
+    </div>
+  </header>
+
+  <main class="layout">
+    <div class="col-result">
+      <!-- 결과: 휴대폰에서는 스크롤해도 위에 붙어 있다 -->
+      <section class="card result" aria-live="polite">
+        <div class="result-label" id="resultLabel"></div>
+        <div class="result-main" id="resultMain"></div>
+        <div class="result-sub" id="resultSub"></div>
+        <div class="meter" aria-hidden="true">
+          <div class="meter-track"></div>
+          <div class="meter-needle" id="meterNeedle"></div>
+          <div class="meter-scale">
+            <span>−3</span><span>−2</span><span>−1</span><span>0</span><span>+1</span><span>+2</span><span>+3</span>
+          </div>
+        </div>
+        <div class="meter-text" id="meterText"></div>
+      </section>
+
+      <section class="card notes-card" id="notesCard" hidden>
+        <ul class="notes" id="notes"></ul>
+        <button type="button" class="primary" id="timerBtn" hidden>장노출 타이머</button>
+      </section>
+    </div>
+
+    <section class="card controls">
+      <div class="seg" id="modeSeg" role="group" aria-label="자동으로 계산할 값">
+        <button type="button" data-mode="shutter">셔터 자동</button>
+        <button type="button" data-mode="aperture">조리개 자동</button>
+        <button type="button" data-mode="manual">직접 확인</button>
+      </div>
+
+      <div class="field">
+        <label for="sceneSel">장면 밝기</label>
+        <div class="select-wrap"><select id="sceneSel"></select></div>
+      </div>
+      <div class="stepper" id="row-ev">
+        <span class="step-name">EV</span>
+        <button type="button" class="prev" aria-label="EV 낮추기">‹</button>
+        <div class="pick"><span class="pick-label"></span><select aria-label="EV 선택"></select></div>
+        <button type="button" class="next" aria-label="EV 높이기">›</button>
+      </div>
+      <div class="hint" id="sceneHint" hidden></div>
+
+      <div class="field">
+        <label for="filmSel">필름</label>
+        <div class="select-wrap"><select id="filmSel"></select></div>
+      </div>
+      <div class="hint" id="filmHint" hidden></div>
+
+      <div class="stepper" id="row-iso">
+        <span class="step-name">ISO</span>
+        <button type="button" class="prev" aria-label="ISO 낮추기">‹</button>
+        <div class="pick"><span class="pick-label"></span><select aria-label="ISO 선택"></select></div>
+        <button type="button" class="next" aria-label="ISO 높이기">›</button>
+      </div>
+      <div class="stepper" id="row-nd">
+        <span class="step-name">ND</span>
+        <button type="button" class="prev" aria-label="ND 줄이기">‹</button>
+        <div class="pick"><span class="pick-label"></span><select aria-label="ND 필터 선택"></select></div>
+        <button type="button" class="next" aria-label="ND 늘리기">›</button>
+      </div>
+      <div class="stepper" id="row-aperture">
+        <span class="step-name">조리개</span>
+        <button type="button" class="prev" aria-label="조리개 열기">‹</button>
+        <div class="pick"><span class="pick-label"></span><span class="badge">자동</span><select aria-label="조리개 선택"></select></div>
+        <button type="button" class="next" aria-label="조리개 조이기">›</button>
+      </div>
+      <div class="stepper" id="row-shutter">
+        <span class="step-name">셔터</span>
+        <button type="button" class="prev" aria-label="셔터 빠르게">‹</button>
+        <div class="pick"><span class="pick-label"></span><span class="badge">자동</span><select aria-label="셔터속도 선택"></select></div>
+        <button type="button" class="next" aria-label="셔터 느리게">›</button>
+      </div>
+    </section>
+  </main>
+
+  <!-- 설정 -->
+  <dialog id="settings">
+    <div class="dlg-head">
+      <h2>설정</h2>
+      <button type="button" class="chip" id="settingsClose">닫기</button>
+    </div>
+
+    <h3>조리개 눈금</h3>
+    <div class="seg small" id="apScaleSeg">
+      <button type="button" data-value="full">1스톱</button>
+      <button type="button" data-value="half">1/2스톱</button>
+      <button type="button" data-value="third">1/3스톱</button>
+    </div>
+
+    <h3>셔터 눈금</h3>
+    <div class="seg small" id="shScaleSeg">
+      <button type="button" data-value="full">1스톱</button>
+      <button type="button" data-value="third">1/3스톱</button>
+    </div>
+    <p class="small-note">필름카메라 셔터는 대부분 1스톱 눈금입니다 (1/60, 1/125, 1/250 …).</p>
+
+    <h3>화면 모드</h3>
+    <div class="seg small" id="themeSeg">
+      <button type="button" data-value="dark">기본</button>
+      <button type="button" data-value="sun">햇빛</button>
+      <button type="button" data-value="red">야간(빨강)</button>
+    </div>
+
+    <h3>사용 방법</h3>
+    <ol class="help">
+      <li>장면 밝기(날씨)를 고릅니다. 노출계가 있으면 EV를 직접 맞추세요.</li>
+      <li>필름을 고르면 감도(ISO)와 장노출 보정이 자동으로 맞춰집니다. 증감(푸시·풀)할 땐 ISO를 따로 바꾸세요.</li>
+      <li>위쪽 버튼으로 셔터·조리개 중 무엇을 자동 계산할지 고릅니다. "직접 확인"은 내가 맞춘 조합이 몇 스톱 벗어났는지 보여줍니다.</li>
+      <li>ND 필터를 겹쳐 쓸 땐 스톱 수를 더해서 고르세요 (예: ND8 + ND64 = 9스톱).</li>
+      <li>네거티브 필름은 조금 밝게 찍혀도 괜찮지만, 슬라이드 필름은 ⅓스톱 차이에도 결과가 달라집니다.</li>
+    </ol>
+
+    <h3>인터넷 없이 쓰기</h3>
+    <p class="small-note">아이폰: 사파리에서 이 페이지를 연 뒤 공유 버튼 → "홈 화면에 추가". 한 번 설치하면 비행기 모드에서도 열립니다.<br>
+      안드로이드: 크롬 메뉴(⋮) → "홈 화면에 추가" 또는 "앱 설치".</p>
+
+    <div class="dlg-foot">
+      <button type="button" class="chip" id="resetBtn">설정 초기화</button>
+      <span class="small-note" id="versionText"></span>
+    </div>
+  </dialog>
+
+  <!-- 장노출 타이머 -->
+  <div class="timer" id="timerView" hidden>
+    <div class="timer-head">
+      <h2>장노출 타이머</h2>
+      <button type="button" class="chip" id="timerClose">닫기</button>
+    </div>
+    <div class="timer-target">
+      <button type="button" class="round" id="tMinus" aria-label="목표 시간 줄이기">−</button>
+      <div><span class="small-note">목표 시간</span><strong id="tTarget"></strong></div>
+      <button type="button" class="round" id="tPlus" aria-label="목표 시간 늘리기">+</button>
+    </div>
+    <div class="timer-display" id="tDisplay">0:00</div>
+    <div class="timer-bar"><div id="tBar"></div></div>
+    <div class="timer-status" id="tStatus"></div>
+    <button type="button" class="primary big" id="tStart">시작</button>
+  </div>
+
+  <script type="module" src="app.js"></script>
+</body>
+</html>

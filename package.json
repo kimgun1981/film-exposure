@@ -1,0 +1,10 @@
+{
+  "name": "film-exposure",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "필름카메라 적정노출 계산기 (오프라인 웹앱)",
+  "scripts": {
+    "test": "node --test tests/"
+  }
+}
