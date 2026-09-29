@@ -6,7 +6,7 @@ import {
 import { solve, nearest, formatThirds, formatTime, formatF, tvToSec } from './exposure.js';
 import { setupTimer } from './timer.js';
 
-const VERSION = '1.0.0'; // sw.js의 VERSION과 같이 올린다
+const VERSION = '1.0.1'; // sw.js의 VERSION과 같이 올린다
 const STORE_KEY = 'film-exposure:v1';
 const DEFAULTS = {
   mode: 'shutter',
@@ -351,6 +351,16 @@ $('resetBtn').addEventListener('click', () => {
 $('versionText').textContent = `버전 ${VERSION}`;
 
 render();
+
+// ── 화면 확대 막기 ──────────────────────────────────────
+// 아이폰 사파리는 확대 금지 설정(viewport)을 무시하므로 두 손가락 확대 동작을 직접 막는다.
+// 한 손가락 스크롤·탭은 그대로 동작한다.
+['gesturestart', 'gesturechange', 'gestureend'].forEach((type) =>
+  document.addEventListener(type, (e) => e.preventDefault(), { passive: false }),
+);
+document.addEventListener('touchmove', (e) => {
+  if (e.touches.length > 1) e.preventDefault();
+}, { passive: false });
 
 // ── 오프라인 설치 (서비스 워커) ──────────────────────────
 if ('serviceWorker' in navigator && location.protocol !== 'file:') {

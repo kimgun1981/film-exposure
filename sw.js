@@ -1,6 +1,6 @@
 // 서비스 워커: 앱 파일을 휴대폰에 저장해 두고, 인터넷이 없을 때 저장본으로 실행한다.
 // 앱을 수정해서 배포할 때마다 VERSION을 올려야 새 파일로 교체된다 (app.js의 VERSION과 함께).
-const VERSION = '1.0.0';
+const VERSION = '1.0.1';
 const CACHE = `film-exposure-${VERSION}`;
 const ASSETS = [
   './',

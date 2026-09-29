@@ -43,6 +43,8 @@
 * { box-sizing: border-box; }
 [hidden] { display: none !important; }
 
+/* 화면 확대 막기: 스크롤만 허용하고 두 손가락 확대·두 번 탭 확대는 막는다 */
+html, body { touch-action: pan-x pan-y; }
 html { -webkit-text-size-adjust: 100%; }
 body {
   margin: 0;
