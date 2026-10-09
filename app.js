@@ -6,7 +6,7 @@ import {
 import { solve, nearest, formatThirds, formatTime, formatF, tvToSec } from './exposure.js';
 import { setupTimer } from './timer.js';
 
-const VERSION = '1.0.2'; // sw.js의 VERSION과 같이 올린다
+const VERSION = '1.0.3'; // sw.js의 VERSION과 같이 올린다
 const STORE_KEY = 'film-exposure:v1';
 const DEFAULTS = {
   mode: 'shutter',
@@ -356,6 +356,14 @@ $('resetBtn').addEventListener('click', () => {
   settings.close();
 });
 $('versionText').textContent = `버전 ${VERSION}`;
+
+// 노출계 눈금: −3 ~ +3을 ⅓스톱마다 (1스톱 눈금은 길게)
+for (let i = 0; i <= 18; i++) {
+  const tick = document.createElement('span');
+  tick.className = i % 3 === 0 ? 'major' : 'minor';
+  tick.style.left = `${(i / 18) * 100}%`;
+  $('meterTicks').appendChild(tick);
+}
 
 render();
 

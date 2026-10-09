@@ -130,23 +130,34 @@ button:disabled { opacity: 0.35; cursor: default; }
 .result-main.long { font-size: clamp(34px, 10vw, 52px); }
 .result-sub { font-size: 14px; color: var(--muted); min-height: 1.3em; margin-top: 2px; }
 
-.meter { position: relative; margin: 10px 4px 0; height: 40px; }
+.meter { position: relative; margin: 10px 4px 0; height: 46px; }
 .meter-track {
   position: absolute;
-  left: 0; right: 0; top: 6px;
-  height: 10px;
+  left: 0; right: 0; top: 4px;
+  height: 8px;
   border-radius: 999px;
   background: linear-gradient(to right,
     var(--bad) 0%, var(--warn) 33.3%, var(--good) 44.4%,
     var(--good) 55.6%, var(--warn) 66.7%, var(--bad) 100%);
   opacity: 0.85;
 }
+/* ⅓스톱 눈금 (1스톱 눈금은 길고 진하게) — 필름카메라 노출계와 같은 모양 */
+.meter-ticks { position: absolute; left: 0; right: 0; top: 15px; height: 10px; }
+.meter-ticks span {
+  position: absolute;
+  top: 0;
+  width: 1px;
+  height: 5px;
+  background: var(--muted);
+  transform: translateX(-50%);
+}
+.meter-ticks span.major { width: 2px; height: 10px; background: var(--text); opacity: 0.75; }
 .meter-needle {
   position: absolute;
   top: 0;
   left: 50%;
   width: 4px;
-  height: 22px;
+  height: 27px;
   margin-left: -2px;
   border-radius: 2px;
   background: var(--text);
