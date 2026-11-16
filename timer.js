@@ -40,6 +40,14 @@ function clock(sec) {
   return h ? `${h}:${String(m).padStart(2, '0')}:${r}` : `${m}:${r}`;
 }
 
+// 10초 미만 노출은 0.1초 단위로 표시 (예: 2.5초). 남은 시간은 올림, 초과 시간은 내림
+function fineClock(sec, up = true) {
+  const s = Math.max(0, sec);
+  const v = up ? Math.ceil(s * 10 - 1e-9) / 10 : Math.floor(s * 10 + 1e-9) / 10;
+  return `${v.toFixed(1)}초`;
+}
+const round1 = (x) => Math.round(x * 10) / 10;
+
 export function setupTimer() {
   const view = $('timerView');
   const display = $('tDisplay');
@@ -66,13 +74,14 @@ export function setupTimer() {
     wakeLock = null;
   }
 
-  const stepFor = (t) => (t < 60 ? 1 : t < 600 ? 10 : 60);
+  const stepFor = (t) => (t < 10 ? 0.5 : t < 60 ? 1 : t < 600 ? 10 : 60);
 
   function draw() {
+    const fine = target < 10;
     targetText.textContent = formatTime(target);
     minus.disabled = plus.disabled = running;
     if (!running) {
-      display.textContent = clock(target);
+      display.textContent = fine ? fineClock(target) : clock(target);
       bar.style.width = '0%';
       view.classList.remove('over');
       return;
@@ -81,9 +90,9 @@ export function setupTimer() {
     const remain = target - elapsed;
     bar.style.width = `${Math.min(100, (elapsed / target) * 100)}%`;
     if (remain > 0) {
-      display.textContent = clock(remain);
+      display.textContent = fine ? fineClock(remain) : clock(remain);
     } else {
-      display.textContent = `+${clock(-remain)}`;
+      display.textContent = `+${fine ? fineClock(-remain, false) : clock(-remain)}`;
       view.classList.add('over');
     }
   }
@@ -139,11 +148,11 @@ export function setupTimer() {
 
   startBtn.addEventListener('click', () => (running ? stop() : start()));
   minus.addEventListener('click', () => {
-    target = Math.max(1, target - stepFor(target - 1));
+    target = Math.max(1, round1(target - stepFor(target - 0.01)));
     draw();
   });
   plus.addEventListener('click', () => {
-    target += stepFor(target);
+    target = round1(target + stepFor(target));
     draw();
   });
   $('timerClose').addEventListener('click', () => {
@@ -160,7 +169,8 @@ export function setupTimer() {
 
   return {
     open(seconds) {
-      target = Math.max(1, Math.round(seconds));
+      // 결과 화면과 같은 값으로: 10초 미만은 0.1초 단위, 그 이상은 1초 단위
+      target = Math.max(1, seconds < 10 ? round1(seconds) : Math.round(seconds));
       stop();
       view.hidden = false;
     },

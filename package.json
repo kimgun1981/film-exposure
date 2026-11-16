@@ -5,6 +5,7 @@
   "type": "module",
   "description": "필름카메라 적정노출 계산기 (오프라인 웹앱)",
   "scripts": {
-    "test": "node --test tests/"
+    "test": "node --test tests/",
+    "bump": "node tools/bump-version.mjs"
   }
 }

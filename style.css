@@ -61,8 +61,41 @@ body::before {
   position: fixed;
   top: 0; left: 0; right: 0;
   height: env(safe-area-inset-top);
-  background: var(--bg);
+  background: var(--statusbar, var(--bg));
   z-index: 30;
+}
+/* 홈 화면 앱의 상태표시줄 글자(시간·배터리)는 항상 흰색이라, 햇빛 모드에서는 그 뒤를 어둡게 깐다 */
+[data-theme="sun"] { --statusbar: #3f3f46; }
+
+/* ── 새 버전 알림 띠 ─────────────────── */
+body.has-update .layout { padding-bottom: 96px; }
+.update-bar {
+  position: fixed;
+  left: 12px; right: 12px;
+  bottom: calc(env(safe-area-inset-bottom) + 12px);
+  z-index: 40;
+  max-width: 536px;
+  margin: 0 auto;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 10px 10px 16px;
+  border-radius: 14px;
+  background: var(--accent);
+  color: var(--accent-ink);
+  font-size: 15px;
+  font-weight: 700;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+}
+.update-bar button {
+  background: var(--accent-ink);
+  color: var(--accent);
+  border-radius: 10px;
+  min-height: 40px;
+  padding: 0 14px;
+  font-weight: 700;
+  white-space: nowrap;
 }
 
 button, select { font: inherit; color: inherit; }

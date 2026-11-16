@@ -6,7 +6,7 @@ import {
 import { solve, nearest, formatThirds, formatTime, formatF, tvToSec } from './exposure.js';
 import { setupTimer } from './timer.js';
 
-const VERSION = '1.0.3'; // sw.js의 VERSION과 같이 올린다
+const VERSION = '1.0.4'; // sw.js의 VERSION과 같이 올린다
 const STORE_KEY = 'film-exposure:v1';
 const DEFAULTS = {
   mode: 'shutter',
@@ -377,7 +377,21 @@ document.addEventListener('touchmove', (e) => {
   if (e.touches.length > 1) e.preventDefault();
 }, { passive: false });
 
-// ── 오프라인 설치 (서비스 워커) ──────────────────────────
+// ── 오프라인 설치 (서비스 워커) + 새 버전 알림 ────────────
+// 앱을 쓰는 중에 새 버전이 받아지면 아래쪽에 "적용하기" 띠를 띄운다.
+// 타이머 도중 갑자기 새로고침되지 않도록 자동으로 바꾸지 않고 직접 누르게 한다.
 if ('serviceWorker' in navigator && location.protocol !== 'file:') {
-  navigator.serviceWorker.register('./sw.js').catch(() => {});
+  const hadController = !!navigator.serviceWorker.controller; // 처음 설치할 때는 띄우지 않음
+  navigator.serviceWorker.addEventListener('controllerchange', () => {
+    if (!hadController) return;
+    $('updateBar').hidden = false;
+    document.body.classList.add('has-update'); // 띠가 맨 아래 셔터 줄을 가리지 않게 여백 추가
+  });
+  navigator.serviceWorker.register('./sw.js').then((reg) => {
+    // 홈 화면 앱은 다시 열어도 페이지를 새로 읽지 않을 때가 있어서, 화면에 돌아올 때마다 새 버전을 확인한다
+    document.addEventListener('visibilitychange', () => {
+      if (document.visibilityState === 'visible') reg.update().catch(() => {});
+    });
+  }).catch(() => {});
 }
+$('updateBtn').addEventListener('click', () => location.reload());
