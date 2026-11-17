@@ -78,6 +78,7 @@ export const ND_LIST = ND_NAMES.map((name, n) => ({
   value: n,
   label: n === 0 ? '없음' : `ND${name} (${(0.3 * n).toFixed(1)}) · ${n}스톱`,
   short: n === 0 ? '없음' : `ND${name} · ${n}스톱`, // 좁은 칸에 보일 이름
+  name: n === 0 ? '없음' : `ND${name}`, // 계산 과정 설명에 쓸 이름
 }));
 
 // ── EV (장면 밝기, −8 ~ 20, 1/3스톱 간격) ────────────────

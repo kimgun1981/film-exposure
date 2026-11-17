@@ -78,6 +78,10 @@ test('ND8이면 1/15', () => {
 test('흐림 EV13, ISO400, f/8, ND1000 → 2초 (벌브)', () => {
   const r = solve({ ...base, ev: 13, iso: iso(400), nd: 10, av: 6 });
   close(r.time, 2, 1e-6);
+  // 계산 과정: ND 없이 1/512초 → ND1000(×1024) 적용 2초
+  close(r.noNdTime, 1 / 512, 1e-9);
+  close(r.metered / r.noNdTime, 1024, 1e-6);
+  assert.equal(nearest(ND_LIST, 10).name, 'ND1000');
   assert.equal(r.bulb, true);
   assert.equal(r.deviation, 0);
 });

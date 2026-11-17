@@ -6,7 +6,7 @@ import {
 import { solve, nearest, formatThirds, formatTime, formatF, tvToSec } from './exposure.js';
 import { setupTimer } from './timer.js';
 
-const VERSION = '1.0.4'; // sw.js의 VERSION과 같이 올린다
+const VERSION = '1.0.5'; // sw.js의 VERSION과 같이 올린다
 const STORE_KEY = 'film-exposure:v1';
 const DEFAULTS = {
   mode: 'shutter',
@@ -161,7 +161,10 @@ function reciprocityNotes(r, film, notes) {
   if (!rc) return;
   const source = film.recip.source ? ` — ${film.recip.source}` : '';
   if (rc.applied) {
-    if (r.mode === 'shutter') {
+    if (r.mode === 'shutter' && state.nd > 0) {
+      // 시간 변화는 맨 위 "노출 시간 계산" 줄에 이미 나오므로 보정 크기와 출처만
+      notes.push(['info', `장노출 보정(상반칙불궤): ${formatThirds(rc.stops)}스톱 더 노출${source}`]);
+    } else if (r.mode === 'shutter') {
       notes.push(['info', `장노출 보정(상반칙불궤): 계산 ${formatTime(r.metered)} → 실제 ${formatTime(r.time)}, ${formatThirds(rc.stops)}스톱 더 노출${source}`]);
     } else {
       notes.push(['info', `장노출 보정(상반칙불궤): 셔터 ${formatTime(r.exposureTime)}는 이 필름에 약 ${formatTime(r.effectiveTime)} 효과라 ${formatThirds(rc.stops)}스톱 손실을 반영했습니다${source}`]);
@@ -234,6 +237,13 @@ function render() {
   if (state.mode === 'shutter') {
     label = '셔터속도';
     const pick = nearest(shutters(), r.tv);
+    if (state.nd > 0) {
+      // 어디서 시간이 늘었는지: ND 없이 → ND 적용 → 필름 보정
+      const ndName = nearest(ND_LIST, state.nd).name;
+      let steps = `노출 시간 계산: ND 없이 ${formatTime(r.noNdTime)} → ${ndName} 적용 ${formatTime(r.metered)}`;
+      if (r.rc.applied) steps += ` → 필름 보정 ${formatTime(r.time)}`;
+      notes.push(['info', steps]);
+    }
     if (r.bulb) {
       mainText = formatTime(r.time);
       const d = r.pickDeviation;

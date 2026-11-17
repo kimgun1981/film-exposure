@@ -117,6 +117,7 @@ export function solve({ mode, ev, iso, nd, av, tv, recip, apertures, shutters })
     const pick = nearest(shutters, tvExact);
 
     r.tv = pick.value;
+    r.noNdTime = 2 ** (av - (ev + iso)); // ND를 빼고 계산한 시간 (계산 과정 설명용)
     r.metered = metered;
     r.time = rc.time;
     r.rc = rc;
